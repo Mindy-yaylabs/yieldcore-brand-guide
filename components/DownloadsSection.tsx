@@ -41,6 +41,112 @@ export default function DownloadsSection() {
     },
   ]
 
+  const handleCompletePackageDownload = async () => {
+    try {
+      // Create a ZIP file with all available assets
+      const JSZip = (await import('jszip')).default
+      const zip = new JSZip()
+      
+      // Logo files to include
+      const logoFiles = [
+        'Yieldcore_BI_bl.png',
+        'Yieldcore_BI_wh.png', 
+        'Yieldcore_logo_gr.png',
+        'Yieldcore_logo_wh.png',
+        'Yieldcore_wordmark_gr.png',
+        'Yieldcore_wordmark_wh.png'
+      ]
+
+      // Add logo files to ZIP
+      const logosFolder = zip.folder('logos')
+      for (const fileName of logoFiles) {
+        try {
+          const response = await fetch(`/assets/logos/${fileName}`)
+          if (response.ok) {
+            const blob = await response.blob()
+            logosFolder?.file(fileName, blob)
+          }
+        } catch (error) {
+          console.warn(`Failed to add ${fileName} to package:`, error)
+        }
+      }
+
+      // Add color palette CSS
+      const colorsCSS = `/* YieldCore Brand Colors */
+:root {
+  /* Primary Colors */
+  --brand-midnight: #0A2A2A;
+  --brand-ocean: #152E2E;
+  --brand-slate: #0C1B1B;
+  
+  /* Secondary Colors */
+  --brand-gold: #F4C430;
+  --brand-amber: #E6AC00;
+  --brand-teal: #B6E6E6;
+  --brand-white: #FFFFFF;
+}
+
+.bg-brand-midnight { background-color: var(--brand-midnight); }
+.bg-brand-ocean { background-color: var(--brand-ocean); }
+.bg-brand-slate { background-color: var(--brand-slate); }
+.bg-brand-gold { background-color: var(--brand-gold); }
+.bg-brand-amber { background-color: var(--brand-amber); }
+.bg-brand-teal { background-color: var(--brand-teal); }
+
+.text-brand-midnight { color: var(--brand-midnight); }
+.text-brand-ocean { color: var(--brand-ocean); }
+.text-brand-slate { color: var(--brand-slate); }
+.text-brand-gold { color: var(--brand-gold); }
+.text-brand-amber { color: var(--brand-amber); }
+.text-brand-teal { color: var(--brand-teal); }`
+
+      zip.file('colors/brand-colors.css', colorsCSS)
+
+      // Add brand guidelines README
+      const guidelines = `# YieldCore Brand Guidelines
+
+## Logo Usage
+- Use BI variants for official documents and presentations
+- Use Logo variants for marketing materials
+- Use Wordmark variants for text-heavy layouts
+- Maintain minimum clear space equal to the height of 'Y'
+- Never alter proportions or add effects
+
+## Color Palette
+Primary: Midnight Teal (#0A2A2A), Deep Ocean (#152E2E), Dark Slate (#0C1B1B)
+Secondary: Bright Gold (#F4C430), Golden Amber (#E6AC00), Soft Teal (#B6E6E6)
+
+## Typography
+Primary: Work Sans
+Weights: Light (300), Regular (400), Medium (500), Semibold (600), Bold (700), Black (900)
+
+## File Structure
+- /logos/ - All logo variants in PNG format
+- /colors/ - Color palette files and CSS variables
+- README.md - These guidelines
+
+Last updated: August 2025`
+
+      zip.file('README.md', guidelines)
+
+      // Generate and download ZIP
+      const content = await zip.generateAsync({ type: 'blob' })
+      const url = URL.createObjectURL(content)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = 'yieldcore-brand-package.zip'
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      URL.revokeObjectURL(url)
+      
+    } catch (error) {
+      console.error('Failed to create brand package:', error)
+      // Fallback: open brand guide in new tab
+      window.open(window.location.href, '_blank')
+    }
+  }
+
   return (
     <section id="downloads" className="py-24 section-padding bg-brand-slate">
       <div className="container-max">
@@ -120,14 +226,17 @@ export default function DownloadsSection() {
         </div>
 
         <div className="mt-12 text-center">
-          <button className="inline-flex items-center gap-3 px-8 py-4 bg-brand-ocean hover:bg-brand-midnight text-white font-semibold rounded-lg transition-colors">
+          <button 
+            onClick={handleCompletePackageDownload}
+            className="inline-flex items-center gap-3 px-8 py-4 bg-brand-ocean hover:bg-brand-midnight text-white font-semibold rounded-lg transition-colors"
+          >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
             </svg>
             Download Complete Brand Package
           </button>
-          <p className="mt-4 text-sm text-gray-500">
-            ZIP Archive • 28.4 MB • Last updated: January 2025
+          <p className="mt-4 text-sm text-gray-300">
+            Includes all logo files, color palettes, and guidelines • Last updated: August 2025
           </p>
         </div>
       </div>
